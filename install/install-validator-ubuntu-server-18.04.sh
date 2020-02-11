@@ -19,9 +19,25 @@ TELEGRAF_VERSION="1.9.4"
 TELEGRAF_CHKSUM="5e52c05988c17d652dbbdfc7a501be69490b6c935b66ccc1ea0aceaca7b48159  telegraf_1.9.4-1_amd64.deb"
 
 # Chain/Parity configuration
-BLOCK_GAS="8000000"
-CHAINNAME="Volta"
-CHAINSPEC_URL="https://raw.githubusercontent.com/energywebfoundation/ewf-chainspec/master/Volta.json"
+setChainConfig() {
+  if [ $1 = "EWC" ]; then
+    BLOCK_GAS="8000000"
+    CHAINNAME="EnergyWebChain"
+    CHAINSPEC_URL="https://raw.githubusercontent.com/energywebfoundation/ewf-chainspec/master/EnergyWebChain.json"
+  else
+    BLOCK_GAS="8000000"
+    CHAINNAME="Volta"
+    CHAINSPEC_URL="https://raw.githubusercontent.com/energywebfoundation/ewf-chainspec/master/Volta.json"
+  fi
+}
+
+# Choose wanted chain
+CHAIN_NAME=$(whiptail --backtitle="EWF Genesis Node Installer" --title "Chain configuration" --radiolist "On which chain do you want your node to connect?" 8 52 2 \
+"EWC" "" ON \
+"VOLTA" "" OFF \
+ 3>&1 1>&2 2>&3)
+setChainConfig $CHAIN_NAME
+
 KEY_SEED="0x$(openssl rand -hex 32)"
 
 # Make sure locales are properly set and generated
@@ -196,7 +212,7 @@ docker run -d --name parity-keygen \
 # Wait for parity to sort itself out
 sleep 20
 
-generate_account_data() 
+generate_account_data()
 {
 cat << EOF
 { "method": "parity_newAccountFromSecret", "params": ["$KEY_SEED","$PASSWORD"], "id": 1, "jsonrpc": "2.0" }
@@ -272,7 +288,7 @@ wget https://downloads.cisofy.com/lynis/lynis-2.7.1.tar.gz
 tar xvzf lynis-2.7.1.tar.gz
 mv lynis /usr/local/
 ln -s /usr/local/lynis/lynis /usr/local/bin/lynis
-lynis audit system 
+lynis audit system
 
 
 # Print install summary
@@ -291,7 +307,7 @@ cat install-summary.txt
 }
 
 ## Files that get created
-      
+
 
 writeDockerCompose() {
 cat > docker-compose.yml << 'EOF'
@@ -308,7 +324,7 @@ services:
       - ./chain-data:/home/parity/.local/share/io.parity.ethereum/
       - ./.secret:/parity/authority.pwd:ro
     ports:
-      - 30303:30303 
+      - 30303:30303
       - 30303:30303/udp
       - 127.0.0.1:8545:8545
 
