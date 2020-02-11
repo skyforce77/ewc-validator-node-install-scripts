@@ -7,7 +7,7 @@ DEBIAN_FRONTEND=noninteractive
 
 # Configuration Block - Docker checksums are the image Id
 PARITY_VERSION="parity/parity:v2.5.13-stable"
-PARITY_CHKSUM="sha256:c0083f652c30488e7fde8a44bbc80cad042b36a78bd87ba8947ab24183c659ad"
+PARITY_CHKSUM="sha256:36be05aeb6426b5615e2d6b71c9590dbc4a4d03ae7bcfa53edefdaeef28d3f41"
 
 NODECONTROL_VERSION="v1.0.0"
 NODECONTROL_CHKSUM="sha256:c23d3f66f1c7861c43ba1fe900eb734bcab7e2352f34b51db91beb6f3d757c35"
@@ -196,7 +196,7 @@ docker run -d --name parity-keygen \
 # Wait for parity to sort itself out
 sleep 20
 
-generate_account_data() 
+generate_account_data()
 {
 cat << EOF
 { "method": "parity_newAccountFromSecret", "params": ["$KEY_SEED","$PASSWORD"], "id": 1, "jsonrpc": "2.0" }
@@ -272,7 +272,7 @@ wget https://downloads.cisofy.com/lynis/lynis-2.7.1.tar.gz
 tar xvzf lynis-2.7.1.tar.gz
 mv lynis /usr/local/
 ln -s /usr/local/lynis/lynis /usr/local/bin/lynis
-lynis audit system 
+lynis audit system
 
 
 # Print install summary
@@ -291,7 +291,7 @@ cat install-summary.txt
 }
 
 ## Files that get created
-      
+
 
 writeDockerCompose() {
 cat > docker-compose.yml << 'EOF'
@@ -308,7 +308,7 @@ services:
       - ./chain-data:/home/parity/.local/share/io.parity.ethereum/
       - ./.secret:/parity/authority.pwd:ro
     ports:
-      - 30303:30303 
+      - 30303:30303
       - 30303:30303/udp
       - 127.0.0.1:8545:8545
 
