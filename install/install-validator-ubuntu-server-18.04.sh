@@ -195,39 +195,36 @@ wget $CHAINSPEC_URL -O config/chainspec.json
 
 echo "Creating Account..."
 
-# Generate random account password and store
-XPATH="$(pwd)"
-PASSWORD="$(openssl rand -hex 32)"
-echo "$PASSWORD" > .secret
-chmod 400 .secret
-chown 1000:1000 .secret
+KEYS_BACKUP_DIR=../backup
+if [ -d "$KEYS_BACKUP_DIR" ]; then
+  SECRET_BACKUP_FILE="../backup/.secret"
+  if [ -z $SECRET_BACKUP_FILE ]; then
+    generatePassword
+  else
+    whiptail --backtitle="EWF Genesis Node Installer" --title "Secret backup file found" --yesno "Are you willing to migrate an existing node?" 8 60
+    if [ $? == 0 ]; then
+      cp "$SECRET_BACKUP_FILE" ".secret"
+    else
+      generatePassword
+    fi
+  fi
 
-# Launch oneshot docker
-docker run -d --name parity-keygen \
-    -p 127.0.0.1:8545:8545 \
-    -v ${XPATH}/chain-data/:/home/parity/.local/share/io.parity.ethereum/ \
-    -v ${XPATH}/config:/parity/config:ro ${PARITY_VERSION} \
-    --config /parity/config/parity-non-signing.toml --jsonrpc-apis=parity_accounts
-
-# Wait for parity to sort itself out
-sleep 20
-
-generate_account_data()
-{
-cat << EOF
-{ "method": "parity_newAccountFromSecret", "params": ["$KEY_SEED","$PASSWORD"], "id": 1, "jsonrpc": "2.0" }
-EOF
-}
-# Send request to create account from seed
-ADDR=`curl -s --request POST --url http://localhost:8545/ --header 'content-type: application/json' --data "$(generate_account_data)" | jq -r '.result'`
-
-echo "Account created: $ADDR"
-INFLUX_USER="$(echo $ADDR | cut -c -20)"
-INFLUX_PASS="$(openssl rand -hex 16)"
-
-# got the key now discard of the parity instance
-docker stop parity-keygen
-docker rm -f parity-keygen
+  KEYS_BACKUP_FILE="../backup/$(ls -1 $KEYS_BACKUP_DIR|grep UTC|head -n1)"
+  if [ -z $KEYS_BACKUP_FILE ]; then
+    generateKeys
+  else
+    whiptail --backtitle="EWF Genesis Node Installer" --title "Keys backup file found" --yesno "Are you willing to migrate an existing node?" 8 60
+    if [ $? == 0 ]; then
+      mkdir -p "./chain-data/keys/$CHAINNAME"
+      cp "$KEYS_BACKUP_FILE" "./chain-data/keys/$CHAINNAME/$(basename $KEYS_BACKUP_FILE)"
+    else
+      generateKeys
+    fi
+  fi
+else
+  generatePassword
+  generateKeys
+fi
 
 PARITY_KEY_FILE="$(ls -1 ./chain-data/keys/$CHAINNAME/|grep UTC|head -n1)"
 
@@ -306,8 +303,47 @@ cat install-summary.txt
 # END OF MAIN
 }
 
-## Files that get created
+## Keys generator
 
+generatePassword() {
+  # Generate random account password and store
+  XPATH="$(pwd)"
+  PASSWORD="$(openssl rand -hex 32)"
+  echo "$PASSWORD" > .secret
+  chmod 400 .secret
+  chown 1000:1000 .secret
+}
+
+generateKeys() {
+# Launch oneshot docker
+docker run -d --name parity-keygen \
+  -p 127.0.0.1:8545:8545 \
+  -v ${XPATH}/chain-data/:/home/parity/.local/share/io.parity.ethereum/ \
+  -v ${XPATH}/config:/parity/config:ro ${PARITY_VERSION} \
+  --config /parity/config/parity-non-signing.toml --jsonrpc-apis=parity_accounts
+
+# Wait for parity to sort itself out
+sleep 20
+
+generate_account_data() {
+cat << EOF
+{ "method": "parity_newAccountFromSecret", "params": ["$KEY_SEED","$PASSWORD"], "id": 1, "jsonrpc": "2.0" }
+EOF
+}
+# Send request to create account from seed
+ADDR=`curl -s --request POST --url http://localhost:8545/ --header 'content-type: application/json' --data "$(generate_account_data)" | jq -r '.result'`
+
+echo "Account created: $ADDR"
+INFLUX_USER="$(echo $ADDR | cut -c -20)"
+INFLUX_PASS="$(openssl rand -hex 16)"
+
+# got the key now discard of the parity instance
+docker stop parity-keygen
+docker rm -f parity-keygen
+}
+
+
+## Files that get created
 
 writeDockerCompose() {
 cat > docker-compose.yml << 'EOF'
