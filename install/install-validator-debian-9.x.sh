@@ -156,11 +156,11 @@ if [ "$PARITYTELEMETRY_CHKSUM" != "$IMGHASH" ]; then
   exit -1;
 fi
 # Create the directory structure
-mkdir docker-stack
+mkdir -p docker-stack
 chmod 750 docker-stack
 cd docker-stack
-mkdir config
-mkdir chain-data
+mkdir -p config
+mkdir -p chain-data
 
 touch config/peers
 
