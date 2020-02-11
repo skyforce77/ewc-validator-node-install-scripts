@@ -193,7 +193,12 @@ echo "Fetch Chainspec..."
 # TODO: replace with chainspec location
 wget $CHAINSPEC_URL -O config/chainspec.json
 
+
+
 echo "Creating Account..."
+
+INFLUX_USER="$(echo $ADDR | cut -c -20)"
+INFLUX_PASS="$(openssl rand -hex 16)"
 
 KEYS_BACKUP_DIR=../backup
 if [ -d "$KEYS_BACKUP_DIR" ]; then
@@ -204,6 +209,8 @@ if [ -d "$KEYS_BACKUP_DIR" ]; then
     whiptail --backtitle="EWF Genesis Node Installer" --title "Secret backup file found" --yesno "Are you willing to migrate an existing node?" 8 60
     if [ $? == 0 ]; then
       cp "$SECRET_BACKUP_FILE" ".secret"
+      chown 1000:1000 .secret
+      chmod +r .secret
     else
       generatePassword
     fi
@@ -217,6 +224,9 @@ if [ -d "$KEYS_BACKUP_DIR" ]; then
     if [ $? == 0 ]; then
       mkdir -p "./chain-data/keys/$CHAINNAME"
       cp "$KEYS_BACKUP_FILE" "./chain-data/keys/$CHAINNAME/$(basename $KEYS_BACKUP_FILE)"
+      ADDR = $(cat "$KEYS_BACKUP_FILE" | jq -r '.address')
+      chown 1000:1000 "$KEYS_BACKUP_FILE"
+      chmod 644 "$KEYS_BACKUP_FILE"
     else
       generateKeys
     fi
@@ -334,8 +344,6 @@ EOF
 ADDR=`curl -s --request POST --url http://localhost:8545/ --header 'content-type: application/json' --data "$(generate_account_data)" | jq -r '.result'`
 
 echo "Account created: $ADDR"
-INFLUX_USER="$(echo $ADDR | cut -c -20)"
-INFLUX_PASS="$(openssl rand -hex 16)"
 
 # got the key now discard of the parity instance
 docker stop parity-keygen
